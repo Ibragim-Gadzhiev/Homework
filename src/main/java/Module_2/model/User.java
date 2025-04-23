@@ -1,11 +1,23 @@
 package Module_2.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Сущность, представляющая пользователя в системе.
+ */
 @Entity
 @Table(name = "users")
 public class User {
@@ -32,20 +44,38 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    public User() {}
+    public User() {
+    }
 
-    public Long getId() { return id; }
-//    public void setId(Long id) { this.id = id; } ID автоинкрементируется
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public Integer getAge() { return age; }
-    public void setAge(Integer age) { this.age = age; }
+    public String getEmail() {
+        return email;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-//    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; } нельзя менять дату создания юзера
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }
