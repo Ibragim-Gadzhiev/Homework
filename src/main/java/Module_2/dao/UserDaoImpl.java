@@ -2,15 +2,37 @@ package Module_2.dao;
 
 import Module_2.model.User;
 import Module_2.util.TransactionUtil;
-import jakarta.validation.*;
-import org.hibernate.query.Query;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.hibernate.query.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Реализация интерфейса {@link UserDao}, предоставляющая методы для работы
+ * с данными пользователей в базе данных.
+ *
+ * <p>Класс реализует CRUD-операции (Create, Read, Update, Delete)
+ * для сущности {@code User} с использованием Hibernate.</p>
+ *
+ * <p>Пример использования:
+ * <pre>{@code
+ * UserDao userDao = new UserDaoImpl(dataSource);
+ * User user = userDao.findById(1L);
+ * }</pre>
+ *
+ * @author Ваше имя/название команды
+ * @version 1.0
+ * @see UserDao
+ * @see User
+ */
 
 public class UserDaoImpl implements UserDao {
     private static final Logger logger = LoggerFactory.getLogger(UserDaoImpl.class);
@@ -120,6 +142,17 @@ public class UserDaoImpl implements UserDao {
         return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 
+    /**
+     * Проверяет, существует ли пользователь с указанным email в базе данных.
+     *
+     *<p>Метод выполняет запрос в базу данных, чтобы узнать,
+     * есть ли хотя бы один пользователь с указанным email.
+     * Запрос выполняется в рамках транзакции.</p>
+     *
+     * @param email адрес электронной почты пользователя для проверки.
+     * @return {@code true}, если пользователь с таким email существует в базе данных,
+     *         иначе {@code false}.
+     */
     public boolean existsByEmail(String email) {
         return TransactionUtil.doInTransaction(session ->
                 session.createQuery("SELECT COUNT(u) FROM User u WHERE u.email = :email", Long.class)
