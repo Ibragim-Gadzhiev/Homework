@@ -138,10 +138,6 @@ public class UserDaoImpl implements UserDao {
         }
     }
 
-    private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
-    }
-
     /**
      * Проверяет, существует ли пользователь с указанным email в базе данных.
      *
