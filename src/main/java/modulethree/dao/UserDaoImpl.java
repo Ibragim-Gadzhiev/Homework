@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import modulethree.model.User;
 import modulethree.util.TransactionUtil;
 import org.hibernate.query.Query;
 import org.slf4j.Logger;
@@ -37,24 +39,24 @@ public class UserDaoImpl implements UserDao {
     private static final Logger logger = LoggerFactory.getLogger(UserDaoImpl.class);
 
     @Override
-    public void create(modulethree.model.User user) {
+    public void create(User user) {
         validateUser(user);
 
         if (existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + user.getEmail());
         }
 
-        modulethree.util.TransactionUtil.doInTransaction(session -> {
+        TransactionUtil.doInTransaction(session -> {
             session.persist(user);
             logger.info("User created. ID: {}", user.getId());
         });
     }
 
     @Override
-    public Optional<modulethree.model.User> read(Long id) {
+    public Optional<User> read(Long id) {
         validateId(id);
-        return modulethree.util.TransactionUtil.doInTransaction(session -> {
-            modulethree.model.User user = session.get(modulethree.model.User.class, id);
+        return TransactionUtil.doInTransaction(session -> {
+            User user = session.get(User.class, id);
             if (user != null) {
                 logger.debug("Retrieved user with ID: {}", id);
             } else {
@@ -65,20 +67,20 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public List<modulethree.model.User> readAll() {
-        return modulethree.util.TransactionUtil.doInTransaction(session -> {
-            Query<modulethree.model.User> query = session.createQuery("FROM User", modulethree.model.User.class);
-            List<modulethree.model.User> users = query.list();
+    public List<User> readAll() {
+        return TransactionUtil.doInTransaction(session -> {
+            Query<User> query = session.createQuery("FROM User", User.class);
+            List<User> users = query.list();
             logger.info("Retrieved {} users", users.size());
             return users;
         });
     }
 
     @Override
-    public boolean update(modulethree.model.User user) {
+    public boolean update(User user) {
         validateUser(user);
-        return modulethree.util.TransactionUtil.doInTransaction(session -> {
-            modulethree.model.User existing = session.get(modulethree.model.User.class, user.getId());
+        return TransactionUtil.doInTransaction(session -> {
+            User existing = session.get(User.class, user.getId());
             if (existing == null) {
                 logger.warn("Update failed: User with ID {} not found", user.getId());
                 return false;
@@ -96,7 +98,7 @@ public class UserDaoImpl implements UserDao {
         });
     }
 
-    private void validateUser(modulethree.model.User user) {
+    private void validateUser(User user) {
         if (user == null) {
             logger.error("User cannot be null");
             throw new IllegalArgumentException("User cannot be null");
@@ -104,7 +106,7 @@ public class UserDaoImpl implements UserDao {
 
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();
-        Set<ConstraintViolation<modulethree.model.User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
 
         if (!violations.isEmpty()) {
             String errorMsg = violations.stream()
@@ -118,8 +120,8 @@ public class UserDaoImpl implements UserDao {
     @Override
     public boolean delete(Long id) {
         validateId(id);
-        return modulethree.util.TransactionUtil.doInTransaction(session -> {
-            modulethree.model.User user = session.get(modulethree.model.User.class, id);
+        return TransactionUtil.doInTransaction(session -> {
+            User user = session.get(User.class, id);
             if (user == null) {
                 logger.warn("Delete failed: User with ID {} not found", id);
                 return false;
