@@ -1,0 +1,1 @@
+![team.png](src/images/team.png)
