@@ -137,8 +137,8 @@ class UserDaoImplTest {
 
     @Test
     void existsByEmail() {
-        createTestUser("exists@test.com");
-        assertTrue(userDao.existsByEmail("exists@test.com"));
+        createTestUser("update.from.lera@test.com");
+        assertTrue(userDao.existsByEmail("update.from.lera@test.com"));
     }
 
     @Test
