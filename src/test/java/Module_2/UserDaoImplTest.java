@@ -99,6 +99,7 @@ class UserDaoImplTest {
     @Test
     void readUser_WithNonExistingId() {
         Optional<User> result = userDao.read(999L);
+
         assertFalse(result.isPresent());
     }
 
