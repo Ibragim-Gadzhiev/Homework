@@ -1,7 +1,14 @@
 package modulethree.service;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import modulethree.dao.UserDao;
 import modulethree.model.User;
 import org.slf4j.Logger;
@@ -15,6 +22,7 @@ import org.slf4j.LoggerFactory;
 public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserDao userDao;
+    private final Validator validator;
 
     /**
      * Создаёт экземпляр сервиса с указанным DAO пользователя.
@@ -23,8 +31,9 @@ public class UserService {
      */
     public UserService(UserDao userDao) {
         this.userDao = userDao;
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        this.validator = factory.getValidator();
     }
-
     /**
      * Создаёт нового пользователя после проверки валидности данных.
      *
@@ -33,13 +42,25 @@ public class UserService {
      * @throws IllegalStateException    если email уже существует
      */
     public void createUser(User user) {
+        validateUser(user);
+
         logger.debug("Attempting to create user: {}", user.getEmail());
-        try {
-            userDao.create(user);
-            logger.info("User created successfully. ID: {}", user.getId());
-        } catch (IllegalArgumentException e) {
-            logger.error("User creation failed: {}", e.getMessage());
-            throw e;
+        if (userDao.existsByEmail(user.getEmail())) {
+            throw new IllegalStateException("Email already exists: " + user.getEmail());
+        }
+
+        userDao.create(user);
+        logger.info("User created successfully. ID: {}", user.getId());
+    }
+
+    private void validateUser(User user) {
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        if (!violations.isEmpty()) {
+            String errorMsg = violations.stream()
+                    .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                    .collect(Collectors.joining("; "));
+            logger.error("Validation failed: {}", errorMsg);
+            throw new ConstraintViolationException(errorMsg, violations);
         }
     }
 
@@ -73,26 +94,39 @@ public class UserService {
     /**
      * Обновляет данные пользователя.
      *
+     * <p>Выполняет валидацию данных пользователя и обновляет его в хранилище.</p>
+     *
      * @param user пользователь с обновлёнными данными
-     * @return true, если обновление успешно
-     * @throws IllegalArgumentException если данные пользователя некорректны
-     * @throws IllegalStateException    если email уже используется другим пользователем
+     * @return true, если обновление выполнено успешно
+     * @throws ConstraintViolationException если данные пользователя не проходят валидацию
+     * @throws IllegalArgumentException     если {@code user.getId() == null}, пользователь не найден
+     *                                      или email уже используется другим пользователем
      */
     public boolean updateUser(User user) {
-        logger.debug("Updating user ID: {}", user.getId());
-        try {
-            boolean updated = userDao.update(user);
-            if (updated) {
-                logger.info("User updated successfully. ID: {}", user.getId());
-            } else {
-                logger.warn("Update failed - user not found. ID: {}", user.getId());
-            }
-            return updated;
-        } catch (IllegalArgumentException e) {
-            logger.error("User update failed: {}", e.getMessage());
-            throw e;
+        validateUser(user);
+
+        if (user.getId() == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
         }
+
+        Optional<User> existingOpt = userDao.read(user.getId());
+        if (existingOpt.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        User existing = existingOpt.get();
+
+        if (!existing.getEmail().equals(user.getEmail()) &&
+                userDao.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        existing.setEmail(user.getEmail());
+        existing.setName(user.getName());
+
+        return userDao.update(existing);
     }
+
 
     /**
      * Удаляет пользователя по ID.
