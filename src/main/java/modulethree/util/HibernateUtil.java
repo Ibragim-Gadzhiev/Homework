@@ -1,24 +1,46 @@
 package modulethree.util;
 
-import org.hibernate.HibernateException;
+import modulethree.model.User;
 import org.hibernate.SessionFactory;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HibernateUtil {
-    private static final Logger logger = LoggerFactory.getLogger(HibernateUtil.class);
-    private static final SessionFactory sessionFactory = buildSessionFactory();
+    private static SessionFactory sessionFactory;
+    private static String jdbcUrl;
+    private static String username;
+    private static String password;
 
-    private static SessionFactory buildSessionFactory() {
+    public static void setConfig(String url, String user, String pwd) {
+        jdbcUrl = url;
+        username = user;
+        password = pwd;
+        rebuildSessionFactory();
+    }
+
+    private static void rebuildSessionFactory() {
+        if (sessionFactory != null) {
+            sessionFactory.close();
+        }
+
         try {
-            Configuration configuration = new Configuration().configure();
-            SessionFactory factory = configuration.buildSessionFactory();
-            logger.info("Hibernate SessionFactory initialized successfully");
-            return factory;
-        } catch (HibernateException ex) {
-            logger.error("Failed to initialize Hibernate SessionFactory", ex);
-            throw new ExceptionInInitializerError(ex);
+            Configuration configuration = new Configuration();
+            configuration.setProperty("hibernate.connection.url", jdbcUrl);
+            configuration.setProperty("hibernate.connection.username", username);
+            configuration.setProperty("hibernate.connection.password", password);
+            configuration.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+            configuration.setProperty("hibernate.hbm2ddl.auto", "update");
+
+            configuration.addAnnotatedClass(User.class);
+
+            StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
+                    .applySettings(configuration.getProperties())
+                    .build();
+
+            sessionFactory = configuration.buildSessionFactory(registry);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to rebuild SessionFactory", e);
         }
     }
 
@@ -27,13 +49,8 @@ public class HibernateUtil {
     }
 
     public static void shutdown() {
-        try {
-            if (sessionFactory != null && !sessionFactory.isClosed()) {
-                sessionFactory.close();
-                logger.info("SessionFactory closed successfully");
-            }
-        } catch (Exception e) {
-            logger.error("Error closing SessionFactory", e);
+        if (sessionFactory != null) {
+            sessionFactory.close();
         }
     }
 }
