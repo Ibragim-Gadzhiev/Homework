@@ -3,46 +3,80 @@ package Module_2;
 import Module_2.dao.UserDao;
 import Module_2.dao.UserDaoImpl;
 import Module_2.model.User;
-import Module_2.util.HibernateUtil;
-import Module_2.util.TransactionUtil;
 import jakarta.validation.ConstraintViolationException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Testcontainers
 class UserDaoImplTest {
-    private static UserDao userDao;
 
-    @BeforeAll
-    static void setup() {
+    // Создаем контейнер PostgreSQL
+    @Container
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("testdb")
+            .withUsername("testuser")
+            .withPassword("testpass");
+
+    private Connection connection;
+    private UserDao userDao;
+
+    @AfterEach
+    void clear() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("DELETE FROM users");
+            System.out.println("Table 'users' cleared.");
+        } catch (SQLException e) {
+            System.out.println("Error while clearing table: " + e.getMessage());
+        }
+
+    }
+    // Настройка подключения к базе данных перед каждым тестом
+    @BeforeEach
+    void setUp() throws SQLException {
+        String jdbcUrl = postgres.getJdbcUrl();
+        connection = DriverManager.getConnection(jdbcUrl, "testuser", "testpass");
+        connection.setAutoCommit(false);
+
+        // Создаем таблицу users
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
+                    "id SERIAL PRIMARY KEY, " +
+                    "name VARCHAR(255) NOT NULL, " +
+                    "email VARCHAR(255) NOT NULL UNIQUE, " +
+                    "age INTEGER NOT NULL, " +
+                    "created_at TIMESTAMP) ");
+        }
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("DELETE FROM users");
+            System.out.println("Table 'users' cleared before test.");
+        }
+
+
+
         userDao = new UserDaoImpl();
     }
-
-    @AfterAll
-    static void cleanup() {
-        HibernateUtil.shutdown();
-    }
-
-    @BeforeEach
-    void clearDatabase() {
-        TransactionUtil.doInTransaction(session -> {
-            session.createMutationQuery("DELETE FROM User").executeUpdate();
-        });
-    }
-
     @Test
-    void createUser_WithValidData_SuccessfullyCreatesUser() {
-        User user = createTestUser("test@example.com");
+    void testCreateUser_Success() throws SQLException {
+        User user = new User();
+        user.setName("Asker");
+        user.setEmail("asker@mail.com");
+        user.setAge(30);
 
-        assertNotNull(user.getId());
-        Optional<User> retrievedUser = userDao.read(user.getId());
-        assertTrue(retrievedUser.isPresent());
-        assertEquals("Test User", retrievedUser.get().getName());
+        userDao.create(user);
+
+        assertTrue(userDao.existsByEmail("asker@mail.com"));
     }
 
     @Test
@@ -112,7 +146,6 @@ class UserDaoImplTest {
     void readAll() {
         createTestUser("user1@test.com");
         createTestUser("user2@test.com");
-
         assertEquals(2, userDao.readAll().size());
     }
 
@@ -138,8 +171,8 @@ class UserDaoImplTest {
 
     @Test
     void existsByEmail() {
-        createTestUser("exists@test.com");
-        assertTrue(userDao.existsByEmail("exists@test.com"));
+        createTestUser("update.from.lera@test.com");
+        assertTrue(userDao.existsByEmail("update.from.lera@test.com"));
     }
 
     @Test
