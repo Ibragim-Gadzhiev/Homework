@@ -123,6 +123,22 @@ class UserServiceTest {
     }
 
     @Test
+    void deleteUser_WhenIdIsNull() {
+        doThrow(new IllegalArgumentException("Invalid ID"))
+                .when(userDao).delete(null);
+        assertThrows(IllegalArgumentException.class,
+                () -> userService.deleteUser(null));
+    }
+
+    @Test
+    void deleteUser_WhenIdIsNegative() {
+        doThrow(new IllegalArgumentException("Invalid ID"))
+                .when(userDao).delete(-1L);
+        assertThrows(IllegalArgumentException.class,
+                () -> userService.deleteUser(-1L));
+    }
+
+    @Test
     void createUser_InvalidAge() {
         User user = new User();
         user.setEmail("test@mail.com");

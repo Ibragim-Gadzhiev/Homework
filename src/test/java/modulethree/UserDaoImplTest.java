@@ -6,10 +6,7 @@ import modulethree.dao.UserDao;
 import modulethree.dao.UserDaoImpl;
 import modulethree.model.User;
 import modulethree.util.HibernateUtil;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -155,6 +152,22 @@ class UserDaoImplTest {
         User user = createTestUser("delete@test.com");
         assertTrue(userDao.delete(user.getId()));
         assertFalse(userDao.read(user.getId()).isPresent());
+    }
+
+    @Test
+    void delete_WhenUserNotFound() {
+        Long nonExistentId = 1000L;
+        Assertions.assertFalse(userDao.delete(nonExistentId));
+    }
+
+    @Test
+    void delete_WhenIdIsNull() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> userDao.delete((Long)null));
+    }
+
+    @Test
+    void delete_WhenIdIsNegative() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> userDao.delete(-1L));
     }
 
     @Test
